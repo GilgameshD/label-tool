@@ -61,7 +61,7 @@
         let sessionPreferences = []; // Holds preferences for the current session only
 
         // Load the JSON file containing GIF names
-        fetch('./filenames.json')
+        fetch('./filenames_val.json')
             .then(response => response.json())
             .then(data => {
                 gifs = data;
