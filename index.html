@@ -37,16 +37,20 @@
         h1 {
             text-align: center; /* Center the text horizontally */
         }
+        h2 {
+            text-align: center; /* Center the text horizontally */
+        }
     </style>
 </head>
 <body>
     <h1>Select the scenario that has more interetsing and surprising behavior of ego vehicle (green).</h1>
+    <h2>When you finish the annotation, click "Download CVS" button to save the csv file.</h2>
     <div class="gif-container">
         <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(1)">
         <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(2)">
     </div>
     <div class="button-container">
-        <button onclick="downloadCSV()">Download Preferences</button>
+        <button onclick="downloadCSV()">Download CSV</button>
     </div>
     <div id="debug"></div>
     <script>
@@ -77,8 +81,8 @@
             const gif1Filename = getRandomGif();
             const gif2Filename = getRandomGif();
 
-            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_test_s3/scene_gifs/${gif1Filename}`;
-            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_test_s3/scene_gifs/${gif2Filename}`;
+            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_train_s3/scene_gifs/${gif1Filename}`;
+            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_train_s3/scene_gifs/${gif2Filename}`;
 
             gif1Element.onerror = () => logDebug('Error loading GIF 1: ' + gif1Element.src);
             gif2Element.onerror = () => logDebug('Error loading GIF 2: ' + gif2Element.src);
