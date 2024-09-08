@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Tool</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .video {
+            width: 100%; /* Make the width responsive */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .video:hover {
+            border-color: blue;
+        }
+        .controls-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 20px;
+        }
+        .slider-container, .button-container {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+        #frameSlider {
+            width: 80%; /* Make the slider longer */
+        }
+        #timeLabel {
+            margin-top: 10px;
+            text-align: center;
+        }
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            background-color: #f9f9f9;
+            width: 100%;
+        }
+        h1, h2, h3 {
+            text-align: center; /* Center the text horizontally */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video-container">
+            <video id="video" class="video" controls muted>
+                <source id="videoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <div class="controls-container">
+            <h2>Select the scenario that has more interesting and surprising behavior of the ego vehicle (green).</h2>
+            <div class="slider-container">
+                <input type="range" id="frameSlider" min="0" max="100" value="0" step="1" oninput="updateVideoFrame(this.value)">
+                <div id="timeLabel">Frame: 0</div> <!-- Label to show current frame -->
+            </div>
+            <div class="button-container">
+                <button onclick="saveResultsAndLoadNext()">Save Results & Load Next</button>
+                <button onclick="downloadCSV()">Download CSV</button>
+            </div>
+            <div id="debug"></div>
+        </div>
+    </div>
+    <script>
+        let videos = [];
+        let sessionResults = [];
+        let currentVideoIndex = 0;
+        const frameRate = 30; // Adjust this value based on your video's frame rate
+
+        fetch('./filenames_val.json')
+            .then(response => response.json())
+            .then(data => {
+                videos = data;
+                displayVideoInOrder();
+                logDebug('Video list loaded successfully.');
+            })
+            .catch(error => logDebug('Error loading video list: ' + error));
+
+        function displayVideoInOrder() {
+            if (videos.length === 0) return;
+            const videoElement = document.getElementById('video');
+            const videoSource = document.getElementById('videoSource');
+            currentVideoIndex = currentVideoIndex % videos.length;
+            const currentVideo = videos[currentVideoIndex];
+            videoSource.src = `./${currentVideo}`;
+            videoElement.load();
+            videoElement.onerror = () => logDebug('Error loading video: ' + videoSource.src);
+
+            videoElement.onloadedmetadata = () => {
+                const duration = videoElement.duration;
+                const totalFrames = Math.floor(duration * frameRate);
+                const slider = document.getElementById('frameSlider');
+                slider.max = totalFrames;
+                slider.value = 0;
+                videoElement.play(); // Automatically play the video
+                logDebug('Video loaded with duration: ' + duration + ' seconds');
+            };
+
+            videoElement.ontimeupdate = () => {
+                const slider = document.getElementById('frameSlider');
+                const currentFrame = Math.floor(videoElement.currentTime * frameRate);
+                slider.value = currentFrame;
+                updateLabel(currentFrame);
+            };
+        }
+
+        function updateVideoFrame(frame) {
+            const videoElement = document.getElementById('video');
+            videoElement.currentTime = frame / frameRate;
+            updateLabel(frame);
+            logDebug('Video slider moved to frame: ' + frame);
+        }
+
+        function updateLabel(frame) {
+            const timeLabel = document.getElementById('timeLabel');
+            timeLabel.textContent = `Frame: ${frame}`;
+        }
+
+        function saveResultsAndLoadNext() {
+            const currentVideo = videos[currentVideoIndex];
+            logDebug('Saving results for video: ' + currentVideo);
+            const frame = document.getElementById('frameSlider').value;
+            sessionResults.push({ video: currentVideo, frame: frame });
+            logDebug('Results saved.');
+            currentVideoIndex++;
+            displayVideoInOrder();
+        }
+
+        function downloadCSV() {
+            if (sessionResults.length === 0) {
+                alert('No results to download.');
+                logDebug('No results to download.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Video,Frame\n";
+            sessionResults.forEach(result => {
+                csvContent += `${result.video},${result.frame}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "video_results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logDebug('Results downloaded as CSV.');
+        }
+
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug');
+            const newLog = document.createElement('div');
+            newLog.textContent = message;
+            debugDiv.appendChild(newLog);
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        }
+
+        displayVideoInOrder();
+    </script>
+</body>
+</html>

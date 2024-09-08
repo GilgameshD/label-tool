@@ -61,7 +61,7 @@
         let sessionPreferences = []; // Holds preferences for the current session only
 
         // Load the JSON file containing GIF names
-        fetch('./filenames_val.json')
+        fetch('./filenames_train.json')
             .then(response => response.json())
             .then(data => {
                 gifs = data;
@@ -84,8 +84,8 @@
             const gif1Filename = getRandomGif();
             const gif2Filename = getRandomGif();
 
-            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_s3/scene_gifs/${gif1Filename}`;
-            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_s3/scene_gifs/${gif2Filename}`;
+            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_train_s3/scene_gifs/${gif1Filename}`;
+            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_train_s3/scene_gifs/${gif2Filename}`;
 
             gif1Element.onerror = () => logDebug('Error loading GIF 1: ' + gif1Element.src);
             gif2Element.onerror = () => logDebug('Error loading GIF 2: ' + gif2Element.src);
