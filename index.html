@@ -59,6 +59,7 @@
     <script>
         let gifs = [];
         let sessionPreferences = []; // Holds preferences for the current session only
+        let numSaved = 0;
 
         // Load the JSON file containing GIF names
         fetch('./HF_N20_DT0.5_TL5.0_4.0_val_future_s3/filenames.json')
@@ -96,10 +97,11 @@
             const gif2 = document.getElementById('gif2').src.split('/').pop();
             const selected = selectedGif === 1 ? 0 : 1; // 0 for left GIF, 1 for right GIF
             logDebug('User selected: ' + (selectedGif === 1 ? gif1 : gif2));
+            numSaved = numSaved + 1;
 
             // Add the current selection to the session preferences
             sessionPreferences.push({ gif1, gif2, selected });
-            logDebug('Preference saved.');
+            logDebug('Preference saved: ' + numSaved);
 
             // Automatically display the next pair of GIFs
             nextPair();
