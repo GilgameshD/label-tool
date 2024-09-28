@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Tool</title>
+    <style>
+        .gif-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .gif {
+            width: 45%; /* Make the width responsive */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer;
+            border: 2px solid transparent;
+            margin-bottom: 20px;
+        }
+        .gif:hover {
+            border-color: blue;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center; /* Center the text horizontally */
+        }
+        h2 {
+            text-align: center; /* Center the text horizontally */
+        }
+        h3 {
+            text-align: center; /* Center the text horizontally */
+        }
+    </style>
+</head>
+<body>
+    <h2>Select the scenario that is has more interetsing and interactive behaviors related to the ego vehicle (green).</h2>
+    <!-- <h3>When you finish the annotation, click "Download CVS" button to save the csv file.</h3> -->
+    <div class="gif-container">
+        <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(1)">
+        <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(2)">
+    </div>
+    <div class="button-container">
+        <button onclick="downloadCSV()">Download CSV</button>
+    </div>
+    <div id="debug"></div>
+    <script>
+        let gifs = [];
+        let sessionPreferences = []; // Holds preferences for the current session only
+        let numSaved = 0;
+
+        // Load the JSON file containing GIF names
+        fetch('./HF_N20_DT0.5_TL5.0_4.0_val_future_s3/filenames.json')
+            .then(response => response.json())
+            .then(data => {
+                gifs = data;
+                displayRandomGifs();
+                logDebug('GIF list loaded successfully.');
+            })
+            .catch(error => logDebug('Error loading GIF list: ' + error));
+
+        function getRandomGif() {
+            const randomIndex = Math.floor(Math.random() * gifs.length);
+            const gifFilename = gifs[randomIndex];
+            return gifFilename;
+        }
+
+        function displayRandomGifs() {
+            if (gifs.length === 0) return;
+            const gif1Element = document.getElementById('gif1');
+            const gif2Element = document.getElementById('gif2');
+
+            const gif1Filename = getRandomGif();
+            const gif2Filename = getRandomGif();
+
+            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif1Filename}`;
+            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif2Filename}`;
+
+            gif1Element.onerror = () => logDebug('Error loading GIF 1: ' + gif1Element.src);
+            gif2Element.onerror = () => logDebug('Error loading GIF 2: ' + gif2Element.src);
+        }
+
+        function selectGif(selectedGif) {
+            const gif1 = document.getElementById('gif1').src.split('/').pop();
+            const gif2 = document.getElementById('gif2').src.split('/').pop();
+            const selected = selectedGif === 1 ? 0 : 1; // 0 for left GIF, 1 for right GIF
+            logDebug('User selected: ' + (selectedGif === 1 ? gif1 : gif2));
+            numSaved = numSaved + 1;
+
+            // Add the current selection to the session preferences
+            sessionPreferences.push({ gif1, gif2, selected });
+            logDebug('Preference saved: ' + numSaved);
+
+            // Automatically display the next pair of GIFs
+            nextPair();
+        }
+
+        function nextPair() {
+            displayRandomGifs();
+        }
+
+        function downloadCSV() {
+            if (sessionPreferences.length === 0) {
+                alert('No preferences to download.');
+                logDebug('No preferences to download.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,GIF1,GIF2,Selected\n";
+            sessionPreferences.forEach(pref => {
+                csvContent += `${pref.gif1},${pref.gif2},${pref.selected}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "gif_preferences.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logDebug('Preferences downloaded as CSV.');
+        }
+
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug');
+            const newLog = document.createElement('div');
+            newLog.textContent = message;
+            debugDiv.appendChild(newLog);
+            debugDiv.scrollTop = debugDiv.scrollHeight; // Auto-scroll to the bottom
+        }
+
+        // Initial display of random GIFs
+        displayRandomGifs();
+    </script>
+</body>
+</html>
