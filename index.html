@@ -5,32 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Label Tool</title>
     <style>
-        .container {
+        .gif-container {
             display: flex;
-            align-items: flex-start; /* Align items to the top */
+            justify-content: space-around;
+            flex-wrap: wrap;
             margin-top: 20px;
         }
         .gif {
-            width: 30%; /* Reduce the width of the GIF window */
+            width: 45%; /* Make the width responsive */
             height: auto; /* Maintain aspect ratio */
+            cursor: pointer;
             border: 2px solid transparent;
-            margin-right: 20px; /* Add some space between GIF and info box */
+            margin-bottom: 20px;
         }
-        .info-container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Align items to the left */
-            width: 25%; /* Increase the width of the info box */
+        .gif:hover {
+            border-color: blue;
         }
         .button-container {
             display: flex;
-            justify-content: flex-start; /* Align buttons to the left */
+            justify-content: center;
             margin-top: 20px;
-        }
-        .button-container button {
-            margin-right: 10px;
-            padding: 15px 30px; /* Larger button size */
-            font-size: 25px; /* Larger font size */
         }
         #debug {
             margin-top: 20px;
@@ -39,110 +33,116 @@
             height: 300px;
             overflow-y: scroll;
             background-color: #f9f9f9;
-            width: 100%; /* Ensure full width in the info box */
         }
-        h1, h2, h3 {
+        h1 {
+            text-align: center; /* Center the text horizontally */
+        }
+        h2 {
+            text-align: center; /* Center the text horizontally */
+        }
+        h3 {
             text-align: center; /* Center the text horizontally */
         }
     </style>
 </head>
 <body>
-    <h2>Rate the scenario related to the ego vehicle (green) on a scale of 1 to 5.</h2>
-    <h2>If the behavior of ego changes, will it cause large difference of other agents?</h2>
-    <div class="container">
-        <img id="gif" class="gif" src="" alt="GIF">
-        <div class="info-container">
-            <div class="button-container">
-                <button onclick="rateGif(1)">1</button>
-                <button onclick="rateGif(2)">2</button>
-                <button onclick="rateGif(3)">3</button>
-                <button onclick="rateGif(4)">4</button>
-                <button onclick="rateGif(5)">5</button>
-                <button onclick="downloadCSV()">Download CSV</button>
-            </div>
-            <div id="debug"></div>
-        </div>
+    <h2>Select the scenario that is has more interetsing and interactive behaviors related to the ego vehicle (green).</h2>
+    <!-- <h3>When you finish the annotation, click "Download CVS" button to save the csv file.</h3> -->
+    <div class="gif-container">
+        <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(1)">
+        <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(2)">
     </div>
+    <div class="button-container">
+        <button onclick="downloadCSV()">Download CSV</button>
+    </div>
+    <div id="debug"></div>
     <script>
         let gifs = [];
-        let sessionRatings = []; // Holds ratings for the current session only
-        let currentIndex = 0;
+        let sessionPreferences = []; // Holds preferences for the current session only
+        let numSaved = 0;
 
         // Load the JSON file containing GIF names
         fetch('./HF_N20_DT0.5_TL5.0_4.0_val_future_s3/filenames.json')
             .then(response => response.json())
             .then(data => {
-                gifs = data.sort(); // Sort filenames alphabetically
-                displayNextGif();
-                logDebug('GIF list loaded and sorted successfully.');
+                gifs = data;
+                displayRandomGifs();
+                logDebug('GIF list loaded successfully.');
             })
             .catch(error => logDebug('Error loading GIF list: ' + error));
 
-        function displayNextGif() {
-            if (currentIndex >= gifs.length) {
-                logDebug('No more GIFs to display.');
+        function getRandomGif() {
+            const randomIndex = Math.floor(Math.random() * gifs.length);
+            const gifFilename = gifs[randomIndex];
+            return gifFilename;
+        }
+
+        function displayRandomGifs() {
+            if (gifs.length === 0) return;
+            const gif1Element = document.getElementById('gif1');
+            const gif2Element = document.getElementById('gif2');
+
+            const gif1Filename = getRandomGif();
+            const gif2Filename = getRandomGif();
+
+            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif1Filename}`;
+            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif2Filename}`;
+
+            gif1Element.onerror = () => logDebug('Error loading GIF 1: ' + gif1Element.src);
+            gif2Element.onerror = () => logDebug('Error loading GIF 2: ' + gif2Element.src);
+        }
+
+        function selectGif(selectedGif) {
+            const gif1 = document.getElementById('gif1').src.split('/').pop();
+            const gif2 = document.getElementById('gif2').src.split('/').pop();
+            const selected = selectedGif === 1 ? 0 : 1; // 0 for left GIF, 1 for right GIF
+            logDebug('User selected: ' + (selectedGif === 1 ? gif1 : gif2));
+            numSaved = numSaved + 1;
+
+            // Add the current selection to the session preferences
+            sessionPreferences.push({ gif1, gif2, selected });
+            logDebug('Preference saved: ' + numSaved);
+
+            // Automatically display the next pair of GIFs
+            nextPair();
+        }
+
+        function nextPair() {
+            displayRandomGifs();
+        }
+
+        function downloadCSV() {
+            if (sessionPreferences.length === 0) {
+                alert('No preferences to download.');
+                logDebug('No preferences to download.');
                 return;
             }
-            
-           const gifElement = document.getElementById('gif');
-           const gifFilename = gifs[currentIndex];
 
-           gifElement.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gifFilename}`;
-           gifElement.onerror = () => logDebug('Error loading GIF: ' + gifElement.src);
-       }
-
-       function rateGif(score) {
-           const gifFilename = gifs[currentIndex];
-           
-           // Add the current rating to the session ratings
-           sessionRatings.push({ gifFilename, score });
-           
-           // Log rating with current index and total number of GIFs
-           logDebug(`User rated GIF "${gifFilename}" with score ${score}. (${currentIndex + 1}/${gifs.length})`);
-           
-           currentIndex++;
-           
-           // Automatically display the next GIF
-           displayNextGif();
-       }
-
-       function downloadCSV() {
-            if (sessionRatings.length === 0) {
-                alert('No ratings to download.');
-                logDebug('No ratings to download.');
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,GIF,Score\n";
-            
-            sessionRatings.forEach(rating => {
-                csvContent += `${rating.gifFilename},${rating.score}\n`;
+            let csvContent = "data:text/csv;charset=utf-8,GIF1,GIF2,Selected\n";
+            sessionPreferences.forEach(pref => {
+                csvContent += `${pref.gif1},${pref.gif2},${pref.selected}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "gif_ratings.csv");
+            link.setAttribute("download", "gif_preferences.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            logDebug('Ratings downloaded as CSV.');
-      }
+            logDebug('Preferences downloaded as CSV.');
+        }
 
-      function logDebug(message) {
-          const debugDiv = document.getElementById('debug');
-          
-          const newLog = document.createElement('div');
-          
-          newLog.textContent = message;
-          
-          debugDiv.appendChild(newLog);
-          
-          debugDiv.scrollTop = debugDiv.scrollHeight; // Auto-scroll to the bottom
-      }
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug');
+            const newLog = document.createElement('div');
+            newLog.textContent = message;
+            debugDiv.appendChild(newLog);
+            debugDiv.scrollTop = debugDiv.scrollHeight; // Auto-scroll to the bottom
+        }
 
-      // Initial display of the first GIF
-      displayNextGif();
-   </script>
+        // Initial display of random GIFs
+        displayRandomGifs();
+    </script>
 </body>
 </html>
