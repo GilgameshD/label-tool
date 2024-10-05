@@ -12,137 +12,235 @@
             margin-top: 20px;
         }
         .gif {
-            width: 45%; /* Make the width responsive */
-            height: auto; /* Maintain aspect ratio */
+            width: 40%;
+            height: auto;
             cursor: pointer;
-            border: 2px solid transparent;
+            border: 5px solid;
+            border-color: #dddddd;
+            border-radius: 20px;
             margin-bottom: 20px;
         }
         .gif:hover {
-            border-color: blue;
+            border-color: #76B900;
         }
         .button-container {
             display: flex;
             justify-content: center;
+            align-items: center; /* Align items vertically */
             margin-top: 20px;
         }
+        .button-container button {
+            padding: 15px 25px;
+            font-size: 20px;
+            border-radius: 10px;
+            border-width: 0px;
+            margin-right: 10px; /* Add some space between buttons */
+        }
+        .button-container button:hover {
+            background-color: #cccccc;
+        }
         #debug {
+            margin: 20px auto;
+            width: 90%;
             margin-top: 20px;
             padding: 10px;
             border: 1px solid #ccc;
             height: 300px;
             overflow-y: scroll;
             background-color: #f9f9f9;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
         }
-        h1 {
-            text-align: center; /* Center the text horizontally */
+        #instruction-popup {
+            display: none; /* Initially hidden */
+            position: absolute; /* Position relative to the button */
+            top: 50%; /* Adjust as needed */
+            left: 50%; /* Adjust as needed */
+            transform: translate(-50%, -50%);
+            width: 1000px; /* Width of the popup */
+            padding: 60px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+            font-size: 20px;
+            font-family: Arial, sans-serif;
         }
-        h2 {
-            text-align: center; /* Center the text horizontally */
+        h1, h2, h3 {
+            text-align: center;
+            font-family: Arial, sans-serif;
         }
-        h3 {
-            text-align: center; /* Center the text horizontally */
+        .slider-container {
+            display: flex;
+            flex-direction: column; /* Stack label on top of the slider */
+            align-items: center; /* Center align the content */
+            margin-top: 5px; /* Adjust as needed */
+            font-size: 18px;
+        }
+        label {
+            font-family: Arial, sans-serif;
+        }
+        input[type="range"] {
+            width: 300px; /* Adjust this value to make the slider longer */
         }
     </style>
 </head>
 <body>
-    <h2>Select the scenario that is has more interetsing and interactive behaviors related to the ego vehicle (green).</h2>
-    <!-- <h3>When you finish the annotation, click "Download CVS" button to save the csv file.</h3> -->
+    <h2>Human Preference Labeling Tool </h2>
     <div class="gif-container">
         <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(1)">
         <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(2)">
     </div>
     <div class="button-container">
-        <button onclick="downloadCSV()">Download CSV</button>
+        <button onclick="toggleInstructions()">Instruction</button>
+        <button onclick="downloadCSV()">Download</button>
+    </div>
+    <div class="button-container">
+        <div class="slider-container">
+            <label for="xPercentSlider">[Sample Percentage]</label>
+            <input type="range" id="xPercentSlider" min="0.05" max="1" step="0.05" value="1.0" oninput="updateXPercent(this.value)">
+        </div>
+        <div class="slider-container">
+            <label for="thresholdSlider">[Top Selecting Threshold]</label>
+            <input type="range" id="thresholdSlider" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateThreshold(this.value)">
+        </div>
+    </div>
+    <div id="instruction-popup">
+        <h3>Instructions</h3>
+        <p>(2) Click the GIF window that has more interesting and interactive behaviors related to the ego vehicle (green).</p>
+        <p>(3) Specifically, you can imagine how much inconvenience the ego vehicle will cause to other agents if it changes its behavior.</p>
+        <p>(4) Once selected, a new pair of GIFs will be displayed.</p>
+        <p>(5) Click the "Download" button to save the preferences as a CSV file.</p>
+        <p>(6) Sample Percentage: We select the top and bottom x% samples according to the current preference.</p>
+        <p>(7) Top Selecting Threshold: The probability of selecting pairs from the top x% samples.</p>
     </div>
     <div id="debug"></div>
     <script>
         let gifs = [];
-        let sessionPreferences = []; // Holds preferences for the current session only
+        let scores = {}; // Object to maintain scores for each GIF
+        let sessionPreferences = [];
         let numSaved = 0;
+        let root_dir = 'HF_N20_DT0.5_TL5.0_4.0_val_future_s3';
+        let xPercent = parseFloat(document.getElementById('xPercentSlider').value); // Initialize xPercent from slider
+        let threshold = parseFloat(document.getElementById('thresholdSlider').value); 
 
-        // Load the JSON file containing GIF names
-        fetch('./HF_N20_DT0.5_TL5.0_4.0_val_future_s3/filenames.json')
+        fetch(`./${root_dir}/filenames.json`)
             .then(response => response.json())
             .then(data => {
                 gifs = data;
-                displayRandomGifs();
-                logDebug('GIF list loaded successfully.');
+                // Initialize scores to 0 for each GIF
+                gifs.forEach(gif => {scores[gif] = 0;});
+                displaySelectedGifs();
+                logDebug('GIF list loaded successfully with initialized scores.');
             })
             .catch(error => logDebug('Error loading GIF list: ' + error));
-
-        function getRandomGif() {
-            const randomIndex = Math.floor(Math.random() * gifs.length);
-            const gifFilename = gifs[randomIndex];
-            return gifFilename;
+    
+        function getSelectedIndices() {
+            const sortedIndices = Object.keys(scores).sort((a, b) => scores[a] - scores[b]);
+            const topIndices = sortedIndices.slice(-Math.floor(sortedIndices.length * xPercent));
+            const bottomIndices = sortedIndices.slice(0, Math.floor(sortedIndices.length * xPercent));
+            return { topIndices, bottomIndices };
         }
-
-        function displayRandomGifs() {
-            if (gifs.length === 0) return;
-            const gif1Element = document.getElementById('gif1');
-            const gif2Element = document.getElementById('gif2');
-
-            const gif1Filename = getRandomGif();
-            const gif2Filename = getRandomGif();
-
-            gif1Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif1Filename}`;
-            gif2Element.src = `HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs/${gif2Filename}`;
-
-            gif1Element.onerror = () => logDebug('Error loading GIF 1: ' + gif1Element.src);
-            gif2Element.onerror = () => logDebug('Error loading GIF 2: ' + gif2Element.src);
+    
+        function getRandomPair(selectedGroup) {
+            const randomIndex1 = Math.floor(Math.random() * selectedGroup.length);
+            let randomIndex2;
+            do {
+                randomIndex2 = Math.floor(Math.random() * selectedGroup.length);
+            } while (randomIndex1 === randomIndex2);
+    
+            return [selectedGroup[randomIndex1], selectedGroup[randomIndex2]];
         }
+    
+        function displaySelectedGifs() {
+           if (gifs.length === 0) return;
 
-        function selectGif(selectedGif) {
-            const gif1 = document.getElementById('gif1').src.split('/').pop();
-            const gif2 = document.getElementById('gif2').src.split('/').pop();
-            const selected = selectedGif === 1 ? 0 : 1; // 0 for left GIF, 1 for right GIF
-            logDebug('User selected: ' + (selectedGif === 1 ? gif1 : gif2));
-            numSaved = numSaved + 1;
+           const gif1Element = document.getElementById('gif1');
+           const gif2Element = document.getElementById('gif2');
 
-            // Add the current selection to the session preferences
-            sessionPreferences.push({ gif1, gif2, selected });
-            logDebug('Preference saved: ' + numSaved);
+           const { topIndices, bottomIndices } = getSelectedIndices();
 
-            // Automatically display the next pair of GIFs
-            nextPair();
-        }
+           // Use the threshold value from the slider
+           const useTop = Math.random() < threshold;
+           const selectedGroup = useTop ? topIndices : bottomIndices;
 
-        function nextPair() {
-            displayRandomGifs();
-        }
+           const [index1, index2] = getRandomPair(selectedGroup);
 
-        function downloadCSV() {
-            if (sessionPreferences.length === 0) {
-                alert('No preferences to download.');
-                logDebug('No preferences to download.');
-                return;
-            }
+           gif1Element.src = `${root_dir}/scene_gifs/${index1}`;
+           gif2Element.src = `${root_dir}/scene_gifs/${index2}`;
 
-            let csvContent = "data:text/csv;charset=utf-8,GIF1,GIF2,Selected\n";
-            sessionPreferences.forEach(pref => {
-                csvContent += `${pref.gif1},${pref.gif2},${pref.selected}\n`;
-            });
+           gif1Element.onerror = () => logDebug('Error loading GIF 1');
+           gif2Element.onerror = () => logDebug('Error loading GIF 2');
+       }
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "gif_preferences.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            logDebug('Preferences downloaded as CSV.');
-        }
+       function selectGif(selectedGif) {
+           const gif1 = document.getElementById('gif1').src.split('/').pop();
+           const gif2 = document.getElementById('gif2').src.split('/').pop();
 
-        function logDebug(message) {
-            const debugDiv = document.getElementById('debug');
-            const newLog = document.createElement('div');
-            newLog.textContent = message;
-            debugDiv.appendChild(newLog);
-            debugDiv.scrollTop = debugDiv.scrollHeight; // Auto-scroll to the bottom
-        }
+           sessionPreferences.push({ gif1, gif2, selectedGif });
 
-        // Initial display of random GIFs
-        displayRandomGifs();
-    </script>
+           // Update scores based on selection
+           if (selectedGif === gif1) {
+               scores[gif1]++;
+           } else if (selectedGif === gif2) {
+               scores[gif2]++;
+           }
+
+           logDebug('User selected GIF ' + selectedGif);
+           nextPair();
+       }
+
+       function nextPair() {
+           displaySelectedGifs();
+       }
+
+       function downloadCSV() {
+          if (sessionPreferences.length === 0) {
+              alert('No preferences to download.');
+              logDebug('No preferences to download.');
+              return;
+          }
+
+          let csvContent = "data:text/csv;charset=utf-8,GIF1,GIF2,Selected\n";
+          sessionPreferences.forEach(pref => {
+              csvContent += `${pref.gif1},${pref.gif2},${pref.selectedGif}\n`;
+          });
+
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", "gif_preferences.csv");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          logDebug('Preferences downloaded as CSV.');
+      }
+
+       function toggleInstructions() {
+           const popup = document.getElementById('instruction-popup');
+           popup.style.display = (popup.style.display === 'none' || popup.style.display === '') ? 'block' : 'none';
+       }
+
+       function logDebug(message) {
+           const debugDiv = document.getElementById('debug');
+           const newLog = document.createElement('div');
+           const timestamp = new Date().toLocaleString();
+           newLog.textContent = `[${timestamp}] ${message}`;
+           debugDiv.appendChild(newLog);
+           debugDiv.scrollTop = debugDiv.scrollHeight; 
+       }
+
+       // Function to update xPercent when slider value changes
+       function updateXPercent(value) {
+           xPercent = parseFloat(value);
+           logDebug(`xPercent updated to ${xPercent}`);
+       }
+       // Function to update threshold when slider value changes
+       function updateThreshold(value) {
+           threshold = parseFloat(value);
+           logDebug(`Threshold updated to ${threshold}`);
+       }
+
+       displaySelectedGifs();
+   </script>
 </body>
 </html>
