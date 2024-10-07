@@ -87,13 +87,14 @@
 <body>
     <h2>Human Preference Labeling Tool </h2>
     <div class="gif-container">
-        <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(1)">
-        <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(2)">
+        <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(0)">
+        <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(1)">
     </div>
     <div class="button-container">
         <button onclick="toggleInstructions()">Instruction</button>
         <button onclick="goBack()">Previous Pair</button> 
         <button onclick="skipPair()">Skip Pair</button> 
+        <button onclick="loadExistingResults()">Load Results</button>
         <button onclick="downloadCSV()">Download</button>
     </div>
     <div class="button-container">
@@ -102,7 +103,7 @@
             <input type="range" id="xPercentSlider" min="0.05" max="1" step="0.05" value="1.0" oninput="updateXPercent(this.value)">
         </div>
         <div class="slider-container">
-            <label for="thresholdSlider">[Top Selecting Threshold]</label>
+            <label for="thresholdSlider">[Top Subset Ratio]</label>
             <input type="range" id="thresholdSlider" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateThreshold(this.value)">
         </div>
     </div>
@@ -112,7 +113,7 @@
         <p>(3) Specifically, you can imagine how much inconvenience the ego vehicle will cause to other agents if it changes its behavior.</p>
         <p>(4) Once selected, a new pair of GIFs will be displayed.</p>
         <p>(5) Click the "Download" button to save the preferences as a CSV file.</p>
-        <p>(6) Sample Percentage: The top and bottom x% samples for sampling next pairs according to the current preference.</p>
+        <p>(6) Sample Percentage: The subsets of top and bottom x% samples for sampling next pairs according to the current preference.</p>
         <p>(7) Top Selecting Threshold: The probability of selecting pairs from the top x% samples.</p>
     </div>
     <div id="debug"></div>
@@ -158,14 +159,18 @@
 
             const gif1Element = document.getElementById('gif1');
             const gif2Element = document.getElementById('gif2');
-
             const { topIndices, bottomIndices } = getSelectedIndices();
 
             // Use the threshold value from the slider
             const useTop = Math.random() < threshold;
-            const selectedGroup = useTop ? topIndices : bottomIndices;
 
+            // log selection from top or bottom
+            logDebug(`Selected from top: ${useTop}`);
+
+            const selectedGroup = useTop ? topIndices : bottomIndices;
             const [index1, index2] = getRandomPair(selectedGroup);
+            // log the scores of the selected GIFs
+            logDebug(`Candidate GIFs: ${index1} (score: ${scores[index1]}), ${index2} (score: ${scores[index2]})`);
 
             gif1Element.src = `${root_dir}/scene_gifs/${index1}`;
             gif2Element.src = `${root_dir}/scene_gifs/${index2}`;
@@ -181,9 +186,9 @@
             sessionPreferences.push({ gif1, gif2, selectedGif });
 
             // Update scores based on selection
-            if (selectedGif === gif1) {
+            if (selectedGif == 0) {
                 scores[gif1]++;
-            } else if (selectedGif === gif2) {
+            } else if (selectedGif == 1) {
                 scores[gif2]++;
             }
 
@@ -213,9 +218,9 @@
             const { gif1, gif2, selectedGif } = lastPreference;
 
             // Decrease the score of the selected GIF
-            if (selectedGif === gif1) {
+            if (selectedGif == 0) {
                 scores[gif1]--;
-            } else if (selectedGif === gif2) {
+            } else if (selectedGif == 1) {
                 scores[gif2]--;
             }
 
@@ -229,6 +234,49 @@
             // Display the previous GIF pair again
             document.getElementById('gif1').src = `${root_dir}/scene_gifs/${gif1}`;
             document.getElementById('gif2').src = `${root_dir}/scene_gifs/${gif2}`;
+        }
+
+        function loadExistingResults() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            
+            input.onchange = function(event) {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    const lines = content.split('\n').slice(1); // Skip the header
+                    
+                    lines.forEach(line => {
+                        if (line.trim() === '') return; // Skip empty lines
+                        
+                        const [gif1, gif2, selectedGif] = line.split(',');
+                        sessionPreferences.push({ gif1, gif2, selectedGif });
+
+                        // Update scores based on loaded data
+                        if (selectedGif == 0) {
+                            scores[gif1]++;
+                            logDebug(`GIF1: ${gif1} selected.`);
+                        } else if (selectedGif == 1) {
+                            scores[gif2]++;
+                            logDebug(`GIF2: ${gif2} selected.`);
+                        }
+                        else {
+                            logDebug(`Invalid selected GIF: ${selectedGif}`);
+                        }
+
+                        numSaved++; // Keep track of the number of loaded preferences
+                    });
+
+                    logDebug(`${numSaved} preferences loaded from CSV.`);
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
         }
 
         function downloadCSV() {
