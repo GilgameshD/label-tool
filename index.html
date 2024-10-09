@@ -109,12 +109,12 @@
     </div>
     <div id="instruction-popup">
         <h3>Instructions</h3>
-        <p>(2) Click the GIF window that has more interesting and interactive behaviors related to the ego vehicle (green).</p>
-        <p>(3) Specifically, you can imagine how much inconvenience the ego vehicle will cause to other agents if it changes its behavior.</p>
-        <p>(4) Once selected, a new pair of GIFs will be displayed.</p>
-        <p>(5) Click the "Download" button to save the preferences as a CSV file.</p>
-        <p>(6) Sample Percentage: The subsets of top and bottom x% samples for sampling next pairs according to the current preference.</p>
-        <p>(7) Top Selecting Threshold: The probability of selecting pairs from the top x% samples.</p>
+        <p>(1) Click the GIF window that has more potential surprising scenarios that the ego vehicle (green) could cause.</p>
+        <p>(2) Specifically, you can imagine how the behavior of ego leads to an unexpected outcome or response from another agent. For example, sudden break, lane changing, overtaking, etc.</p>
+        <p>(3) Once selected, a new pair of GIFs will be displayed.</p>
+        <p>(4) Click the "Download" button to save the preferences as a CSV file.</p>
+        <p>(5) Sample Percentage: The subsets of top and bottom x% samples for sampling next pairs according to the current preference.</p>
+        <p>(6) Top Selecting Threshold: The probability of selecting pairs from the top x% samples.</p>
     </div>
     <div id="debug"></div>
     <script>
@@ -258,10 +258,8 @@
                         // Update scores based on loaded data
                         if (selectedGif == 0) {
                             scores[gif1]++;
-                            logDebug(`GIF1: ${gif1} selected.`);
                         } else if (selectedGif == 1) {
                             scores[gif2]++;
-                            logDebug(`GIF2: ${gif2} selected.`);
                         }
                         else {
                             logDebug(`Invalid selected GIF: ${selectedGif}`);
