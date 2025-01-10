@@ -91,7 +91,7 @@
         <img id="gif2" class="gif" src="" alt="GIF 2" onclick="selectGif(1)">
     </div>
     <div class="button-container">
-        <button onclick="toggleInstructions()">Instruction</button>
+        <button onclick="toggleInstructions()">Instructions</button>
         <button onclick="goBack()">Previous Pair</button> 
         <button onclick="skipPair()">Skip Pair</button> 
         <button onclick="loadExistingResults()">Load Results</button>
@@ -110,11 +110,11 @@
     <div id="instruction-popup">
         <h3>Instructions</h3>
         <p>(1) Click the GIF window that has more potential surprising scenarios that the ego vehicle (green) could cause.</p>
-        <p>(2) Specifically, you can imagine how the behavior of ego leads to an unexpected outcome or response from another agent. For example, sudden break, lane changing, overtaking, etc.</p>
+        <p>(2) Specifically, you can imagine how the behavior of the ego leads to an unexpected outcome or response from another agent. For example, sudden break, lane changing, overtaking, etc.</p>
         <p>(3) Once selected, a new pair of GIFs will be displayed.</p>
         <p>(4) Click the "Download" button to save the preferences as a CSV file.</p>
-        <p>(5) Sample Percentage: The subsets of top and bottom x% samples for sampling next pairs according to the current preference.</p>
-        <p>(6) Top Selecting Threshold: The probability of selecting pairs from the top x% samples.</p>
+        <p>(4) Click the "Load Results" button if you want to continue the labeling from previous results.</p>
+        <p>(5) "Sample Percentage" and "Top Subset Ratio" control the sampling strategy of pairs. You can leave them as the default values.</p>
     </div>
     <div id="debug"></div>
     <script>
