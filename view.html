@@ -5,20 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Results</title>
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center; /* Center the content horizontally */
+            background-color: #f4f4f4;
+        }
+        .content-wrapper {
+            width: 2200px; /* Set your desired fixed width */
+            margin: 0 auto; /* Center the content */
+            background: #ffffff; /* Optional: add a background color */
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Optional: add some shadow for better visual appearance */
+            padding: 20px; /* Optional: add some padding for inner content */
+        }
         .button-container {
             display: flex;
-            justify-content: center;  /* Center buttons horizontally */
-            margin-top: 50px;
+            justify-content: center;
+            align-items: center; /* Align items vertically */
+            margin-top: 20px;
         }
         .button-container button {
-            padding: 10px 20px;  /* Adjusted padding */
-            font-size: 18px;      /* Adjusted font size */
+            padding: 15px 25px;
+            font-size: 20px;
             border-radius: 10px;
             border-width: 0px;
-            margin-right: 10px;   /* Added margin between buttons */
-        }
-        .button-container button:last-child {
-            margin-right: 0;      /* Remove margin from the last button */
+            margin-right: 10px; /* Add some space between buttons */
         }
         .button-container button:hover {
             background-color: #cccccc;
@@ -41,21 +53,28 @@
         }
         h2 {
             text-align: center;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
 <body>
+    <div class="content-wrapper">
     <h2>View Results from Loaded File</h2>
     <div class="gif-container" id="gifContainer"></div>
     <div class="button-container">
         <button onclick="loadResults()">Load Results</button>
+        <button onclick="viewPreviousPair()">View Previous Pair</button>
         <button onclick="viewNextPair()">View Next Pair</button>
-        <button onclick="goBackToAnnotation()">Go Back to Annotation</button>
+        <button onclick="changePreference()">Change Preference</button>
+        <button onclick="saveResults()">Save Results</button>
+        <button onclick="goBackToAnnotation()">Label Tool</button>
+    </div>
     </div>
     <script>
         let rootDir = 'HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs';
         let currentIndex = 0;
         let results = [];
+
         function loadResults() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -98,7 +117,7 @@
         }
 
         function showGifPair() {
-            if (currentIndex >= results.length) {
+            if (currentIndex >= results.length || currentIndex < 0) {
                 alert('No more pairs to display.');
                 return;
             }
@@ -111,7 +130,7 @@
                 const img = document.createElement('img');
                 img.src = gif;
                 img.className = 'gif';
-                if (selectedGif === index) { // Adjusted for 0-based selection
+                if (selectedGif === index) {  // Adjusted for 0-based selection
                     img.classList.add('selected');
                 }
                 gifContainer.appendChild(img);
@@ -123,8 +142,55 @@
             showGifPair();
         }
 
+        function viewPreviousPair() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showGifPair();
+            } else {
+                alert('No previous pairs to display.');
+            }
+        }
+
+        function changePreference() {
+            if (currentIndex < 0 || currentIndex >= results.length) {
+                alert('No valid pair selected.');
+                return;
+            }
+
+            const result = results[currentIndex];
+            result.selectedGif = (result.selectedGif === 0) ? 1 : 0; // Toggle preference
+            showGifPair(); // Update the GIF pair display
+        }
+
+        function saveResults() {
+            if (results.length === 0) {
+                alert('No results to save.');
+                return;
+            }
+
+            let csvContent = 'gif1,gif2,selectedGif\n'; // CSV header
+            results.forEach(result => {
+                // Extract just the filename from the full path
+                const gif1Filename = result.gif1.split('/').pop();
+                const gif2Filename = result.gif2.split('/').pop();
+
+                csvContent += `${gif1Filename},${gif2Filename},${result.selectedGif}\n`;
+            });
+
+            // Create a Blob and trigger the download
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'modified_results.csv'; // Name of the saved file
+            link.click();
+        }
+
         function goBackToAnnotation() {
-            window.location.href = 'index.html';
+            const userConfirmed = confirm("Your current changes will be lost if you go to the label tool. Do you want to continue?");
+            if (userConfirmed) {
+                window.location.href = 'index.html';
+            }
+            // If the user clicks "No", do nothing and remain on the current page
         }
     </script>
 </body>

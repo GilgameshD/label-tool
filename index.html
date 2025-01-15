@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Label Tool</title>
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center; /* Center the content horizontally */
+            background-color: #f4f4f4;
+        }
+        .content-wrapper {
+            width: 2200px; /* Set your desired fixed width */
+            margin: 0 auto; /* Center the content */
+            background: #ffffff; /* Optional: add a background color */
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Optional: add some shadow for better visual appearance */
+            padding: 20px; /* Optional: add some padding for inner content */
+        }
         .gif-container {
             display: flex;
             justify-content: space-around;
@@ -85,6 +99,7 @@
     </style>
 </head>
 <body>
+    <div class="content-wrapper">
     <h2>Human Preference Labeling Tool </h2>
     <div class="gif-container">
         <img id="gif1" class="gif" src="" alt="GIF 1" onclick="selectGif(0)">
@@ -95,8 +110,8 @@
         <button onclick="goBack()">Previous Pair</button> 
         <button onclick="skipPair()">Skip Pair</button> 
         <button onclick="loadExistingResults()">Load Results</button>
-        <button onclick="downloadCSV()">Download</button>
-        <button onclick="viewResults()">View Results</button> <!-- New Button -->
+        <button onclick="downloadCSV()">Save Results</button>
+        <button onclick="viewResults()">View Tool</button> <!-- New Button -->
     </div>
     <div class="button-container">
         <div class="slider-container">
@@ -108,16 +123,19 @@
             <input type="range" id="thresholdSlider" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateThreshold(this.value)">
         </div>
     </div>
-    <div id="instruction-popup">
+    <div id="instruction-popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+        <button id="close-button" style="position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border: 2px solid red; border-radius: 50%; background: white; color: red; font-weight: bold; cursor: pointer;">X</button>
         <h3>Instructions</h3>
         <p>(1) Click the GIF window that has more potential surprising scenarios that the ego vehicle (green) could cause.</p>
         <p>(2) Specifically, you can imagine how the behavior of the ego leads to an unexpected outcome or response from another agent. For example, sudden break, lane changing, overtaking, etc.</p>
         <p>(3) Once selected, a new pair of GIFs will be displayed.</p>
-        <p>(4) Click the "Download" button to save the preferences as a CSV file.</p>
+        <p>(4) Click the "Save Results" button to save the preferences as a CSV file.</p>
         <p>(4) Click the "Load Results" button if you want to continue the labeling from previous results.</p>
+        <p>(4) Clicking the "View Tool" button leads to another new page that can view saved results files.</p>
         <p>(5) "Sample Percentage" and "Top Subset Ratio" control the sampling strategy of pairs. You can leave them as the default values.</p>
     </div>
     <div id="debug"></div>
+    </div>
     <script>
         let gifs = [];
         let scores = {}; // Object to maintain scores for each GIF
@@ -138,9 +156,16 @@
             })
             .catch(error => logDebug('Error loading GIF list: ' + error));
     
+        // Function to view the results tool
         function viewResults() {
-            window.location.href = 'view.html';
+            const userConfirmed = confirm("Your current results will be lost if you go to the view tool. Do you want to continue?");
+            if (userConfirmed) {
+                window.location.href = 'view.html';
+            }
+            // If the user clicks "No", do nothing and remain on the current page
         }
+        
+        // Function to get the selected indices based on the scores
         function getSelectedIndices() {
             const sortedIndices = Object.keys(scores).sort((a, b) => scores[a] - scores[b]);
             const topIndices = sortedIndices.slice(-Math.floor(sortedIndices.length * xPercent));
@@ -307,6 +332,12 @@
             const popup = document.getElementById('instruction-popup');
             popup.style.display = (popup.style.display === 'none' || popup.style.display === '') ? 'block' : 'none';
         }
+
+        // for the close button in the instruction popup
+        document.getElementById('close-button').addEventListener('click', function () {
+            const popup = document.getElementById('instruction-popup');
+            popup.style.display = 'none';
+        });
 
         function logDebug(message) {
             const debugDiv = document.getElementById('debug');
