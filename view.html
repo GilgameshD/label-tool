@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Results</title>
+    <style>
+        .button-container {
+            display: flex;
+            justify-content: center;  /* Center buttons horizontally */
+            margin-top: 50px;
+        }
+        .button-container button {
+            padding: 10px 20px;  /* Adjusted padding */
+            font-size: 18px;      /* Adjusted font size */
+            border-radius: 10px;
+            border-width: 0px;
+            margin-right: 10px;   /* Added margin between buttons */
+        }
+        .button-container button:last-child {
+            margin-right: 0;      /* Remove margin from the last button */
+        }
+        .button-container button:hover {
+            background-color: #cccccc;
+        }
+        .gif-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .gif {
+            width: 40%;
+            height: auto;
+            border: 5px solid transparent;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        .gif.selected {
+            border-color: #76B900;
+        }
+        h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>View Results from Loaded File</h2>
+    <div class="gif-container" id="gifContainer"></div>
+    <div class="button-container">
+        <button onclick="loadResults()">Load Results</button>
+        <button onclick="viewNextPair()">View Next Pair</button>
+        <button onclick="goBackToAnnotation()">Go Back to Annotation</button>
+    </div>
+    <script>
+        let rootDir = 'HF_N20_DT0.5_TL5.0_4.0_val_future_s3/scene_gifs';
+        let currentIndex = 0;
+        let results = [];
+        function loadResults() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = function(event) {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    try {
+                        const lines = e.target.result.split('\n').slice(1).filter(line => line.trim() !== '');
+                        results = lines.map(line => {
+                            const [gif1, gif2, selectedGif] = line.split(',');
+                            const trimmedGif1 = gif1.trim();
+                            const trimmedGif2 = gif2.trim();
+                            const trimmedSelectedGif = parseInt(selectedGif.trim(), 10);
+                            const fullPathGif1 = `${rootDir}/${trimmedGif1}`;
+                            const fullPathGif2 = `${rootDir}/${trimmedGif2}`;
+                            return { 
+                                gif1: fullPathGif1, 
+                                gif2: fullPathGif2, 
+                                selectedGif: trimmedSelectedGif 
+                            };
+                        });
+
+                        alert(`File loaded successfully! Number of pairs: ${results.length}`);
+                        showGifPair();
+                    } catch (error) {
+                        alert(`Failed to load file: ${error.message}`);
+                    }
+                };
+
+                reader.onerror = function() {
+                    alert('Error reading file. Please try again.');
+                };
+
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function showGifPair() {
+            if (currentIndex >= results.length) {
+                alert('No more pairs to display.');
+                return;
+            }
+
+            const gifContainer = document.getElementById('gifContainer');
+            gifContainer.innerHTML = '';
+
+            const { gif1, gif2, selectedGif } = results[currentIndex];
+            [gif1, gif2].forEach((gif, index) => {
+                const img = document.createElement('img');
+                img.src = gif;
+                img.className = 'gif';
+                if (selectedGif === index) { // Adjusted for 0-based selection
+                    img.classList.add('selected');
+                }
+                gifContainer.appendChild(img);
+            });
+        }
+
+        function viewNextPair() {
+            currentIndex++;
+            showGifPair();
+        }
+
+        function goBackToAnnotation() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

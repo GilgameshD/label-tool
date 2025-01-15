@@ -96,6 +96,7 @@
         <button onclick="skipPair()">Skip Pair</button> 
         <button onclick="loadExistingResults()">Load Results</button>
         <button onclick="downloadCSV()">Download</button>
+        <button onclick="viewResults()">View Results</button> <!-- New Button -->
     </div>
     <div class="button-container">
         <div class="slider-container">
@@ -137,6 +138,9 @@
             })
             .catch(error => logDebug('Error loading GIF list: ' + error));
     
+        function viewResults() {
+            window.location.href = 'view.html';
+        }
         function getSelectedIndices() {
             const sortedIndices = Object.keys(scores).sort((a, b) => scores[a] - scores[b]);
             const topIndices = sortedIndices.slice(-Math.floor(sortedIndices.length * xPercent));
